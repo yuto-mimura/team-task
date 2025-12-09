@@ -8,16 +8,17 @@
 
 ### フロントエンド
 - **TanStack Start**: React-based full-stack framework
-- **SSR**: Cloudflare Workers上でのサーバーサイドレンダリング
+- **SSR**: サーバーサイドレンダリング（静的生成）
 
 ### バックエンド
 - **Hono**: 軽量で高速なWebフレームワーク
-- **実行環境**: Cloudflare Workers
+- **実行環境**: AWS Lambda
 - **ORM**: Drizzle ORM（TypeScript-first、migration-friendly）
 
 ### インフラ・デプロイメント
-- **Cloudflare Workers**: エッジコンピューティングプラットフォーム
-- **Cloudflare Pages**: フロントエンドホスティング（SSR対応）
+- **AWS Lambda**: サーバーレスバックエンド実行環境
+- **Amazon S3**: 静的フロントエンドホスティング
+- **Amazon CloudFront**: CDNによる配信最適化
 
 ### データベース
 - **Supabase**: PostgreSQL互換のBaaS
@@ -28,14 +29,15 @@
 ```
 ┌─────────────────────────┐
 │   TanStack Start        │
-│   (Frontend SSR)        │
+│   (Static Generation)   │
+│   S3 + CloudFront       │
 └─────────┬───────────────┘
           │ API calls
           ▼
 ┌─────────────────────────┐
 │   Hono API              │
 │   + Drizzle ORM         │
-│   (Cloudflare Workers)  │
+│   (AWS Lambda)          │
 └─────────┬───────────────┘
           │ Database queries
           ▼
@@ -46,13 +48,6 @@
 ```
 
 ## 主要な機能・特徴
-
-### Bun
-- 高速なJavaScript/TypeScriptランタイム
-- 組み込みのパッケージマネージャー
-- Native bundler・transpiler
-- Hot reloading機能
-- Node.js互換性
 
 ### TanStack Start
 - File-based routing
@@ -66,7 +61,7 @@
 - TypeScript first
 - Middleware ecosystem
 - Web標準API対応
-- Cloudflare Workers最適化
+- AWS Lambda最適化
 
 ### Drizzle ORM
 - TypeScript-nativeなORM
@@ -75,12 +70,12 @@
 - Zero runtime overhead
 - PostgreSQL完全対応
 
-### Cloudflare Workers
-- Edge computing
-- 低レイテンシー
-- グローバル展開
-- スケーラビリティ
-- KV/D1/R2統合
+### AWS Lambda
+- サーバーレスコンピューティング
+- 自動スケーリング
+- 従量課金モデル
+- 高可用性
+- AWS サービス統合
 
 ### Supabase
 - PostgreSQL互換
@@ -92,62 +87,63 @@
 ## 開発環境・ツール
 
 ### パッケージ管理
-- **Bun workspaces**: モノレポ管理・高速インストール
+- **pnpm workspaces**: モノレポ管理・高速インストール
 
 ### 開発ツール
-- **Wrangler**: Cloudflare Workers CLI
+- **AWS CLI**: AWS サービス管理
+- **AWS SAM CLI**: Lambda ローカル開発
 - **Supabase CLI**: ローカル開発環境
 - **Drizzle Kit**: マイグレーション・スキーマ管理
 - **TypeScript**: 型チェック・トランスパイル
 
 ### CI/CD
 - **GitHub Actions**: 自動デプロイメント
-- **Cloudflare Workers**: 本番デプロイメント
-- **Cloudflare Pages**: フロントエンドデプロイメント
+- **AWS Lambda**: バックエンドデプロイメント
+- **Amazon S3 + CloudFront**: フロントエンドデプロイメント
 
 ## 検討すべき課題・制約事項
 
-### Cloudflare Workers制約
-- **実行時間制限**: 最大30秒（有料プランで10分）
-- **メモリ制限**: 128MB
-- **バンドルサイズ**: 最大1MB（圧縮後）
-- **同時接続数**: 1000接続/分
-- **CPU時間**: 10ms/リクエスト（無料）、50ms（有料）
+### AWS Lambda制約
+- **実行時間制限**: 最大15分
+- **メモリ制限**: 128MB～10,240MB
+- **パッケージサイズ**: 最大50MB（圧縮後）、250MB（非圧縮）
+- **同時実行数**: 1000同時実行（デフォルト）
+- **一時ディスク領域**: 512MB～10,240MB
 
-### TanStack Start + Cloudflare Workers統合
-- **SSR複雑性**: Workers環境でのReact SSR実装
-- **状態管理**: クライアント・サーバー間の状態同期
-- **ルーティング**: Workers内でのfile-based routing実装
-- **静的アセット**: Pages + Workers間での最適化
+### TanStack Start + S3/CloudFront統合
+- **静的サイト生成**: ビルド時の静的ファイル生成
+- **ルーティング**: クライアントサイドルーティング
+- **キャッシュ戦略**: CloudFrontでの配信最適化
+- **アセット管理**: S3での静的ファイルホスティング
 
-### Bun + Cloudflare Workers統合
-- **ランタイム差異**: Bun開発環境とWorkers本番環境の違い
-- **互換性**: BunのAPIとWorkers環境での動作確認
-- **依存関係**: Bunネイティブ機能のWorkers対応状況
+### Node.js/pnpm + Lambda統合
+- **ランタイム環境**: Node.js 18+での一貫性
+- **パッケージ管理**: pnpmでの依存関係最適化
+- **ビルド最適化**: esbuildでのLambda向けバンドル
 
 ### データベース・ORM統合の課題
-- **接続プール**: Workersは従来の接続プールが使用不可
-- **コールドスタート**: 新しいWorkerインスタンス起動時の遅延
-- **Drizzle設定**: Workers環境での適切なドライバー選択
+- **接続プール**: Lambdaは接続プールを使用できないためコネクション管理が重要
+- **コールドスタート**: 新しいLambdaインスタンス起動時の遅延
+- **Drizzle設定**: Lambda環境での適切なドライバー選択
 - **マイグレーション**: 本番環境での安全なスキーマ変更
 - **型安全性**: Drizzle生成型とSupabase型の整合性
 
 ### 開発・デバッグの難しさ
-- **ローカル開発**: Wranglerでの完全な再現性確保
-- **デバッグツール**: Workers環境での制限されたデバッグ機能
+- **ローカル開発**: AWS SAMでのローカルLambdaシミュレーション
+- **デバッグツール**: Lambda環境でのログ出力とCloudWatch統合
 - **テスト環境**: 本番環境との差異を最小化
 
 ### セキュリティ考慮事項
-- **環境変数**: Workers Secretsでの機密情報管理
+- **環境変数**: Lambda環境変数とAWS Secrets Managerでの機密情報管理
 - **CORS設定**: フロントエンド・API間の適切な設定
-- **認証フロー**: Supabase Auth + Workers間の統合
+- **認証フロー**: Supabase Auth + Lambda間の統合
 - **CSP**: Content Security Policyの適切な設定
 - **Database接続**: Drizzleでの安全なクエリ実行
 
 ### パフォーマンス最適化
 - **バンドルサイズ**: Tree-shakingと不要な依存関係排除
-- **キャッシュ戦略**: Cloudflare CDNとWorkers KVの活用
-- **画像最適化**: Cloudflare Imagesとの統合
+- **キャッシュ戦略**: CloudFront CDNとLambda@Edgeの活用
+- **画像最適化**: S3とCloudFrontでの画像配信最適化
 - **Code splitting**: TanStack Startでの効果的な分割
 - **ORM最適化**: Drizzleでのクエリパフォーマンス向上
 
@@ -182,8 +178,8 @@ export const users = pgTable('users', {
 
 ```bash
 # マイグレーション実行
-bun run drizzle-kit generate:pg
-bun run drizzle-kit push:pg
+pnpm run drizzle-kit generate:pg
+pnpm run drizzle-kit push:pg
 ```
 
 ### 環境変数管理
@@ -198,14 +194,12 @@ DATABASE_URL = "postgresql://user:pass@host:5432/db"
 
 ### モノレポ構成推奨
 ```
-packages/
+api/                 # Hono + Drizzle Workers API
+frontend/            # TanStack Start アプリ
+packages/            # 共有パッケージ（将来の拡張用）
 ├── shared/          # 共通型定義・ユーティリティ
 ├── database/        # Drizzle スキーマ・マイグレーション
 └── config/          # 共通設定
-
-apps/
-├── frontend/        # TanStack Start アプリ
-└── api/            # Hono + Drizzle Workers API
 ```
 
 ## 開発・デプロイメントワークフロー
@@ -214,26 +208,24 @@ apps/
 
 #### 必要なツール
 ```bash
-# Bun (推奨)
-curl -fsSL https://bun.sh/install | bash
-bun install -g @cloudflare/wrangler
-bun install -g supabase
+# pnpm (推奨)
+npm install -g pnpm @cloudflare/wrangler supabase
 
 # プロジェクトセットアップ
-bun install
+pnpm install
 supabase start
-bun run dev
+pnpm run dev
 ```
 
 #### 開発サーバー起動
 ```bash
 # フロントエンド（TanStack Start）
-cd apps/frontend
-bun run dev
+cd frontend
+pnpm run dev
 
 # バックエンド（Hono + Drizzle + Wrangler）
-cd apps/api
-bun run dev
+cd api
+pnpm run dev
 ```
 
 ### デプロイメント戦略
@@ -242,15 +234,15 @@ bun run dev
 ```bash
 # マイグレーション実行
 cd packages/database
-bun run db:push:staging
+pnpm run db:push:staging
 
 # API デプロイ
-cd apps/api
+cd api
 wrangler deploy --env staging
 
 # フロントエンド デプロイ
-cd apps/frontend
-bun run build
+cd frontend
+pnpm run build
 wrangler pages deploy dist --env staging
 ```
 
@@ -275,9 +267,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: oven-sh/setup-bun@v1
-      - run: bun install
-      - run: bun run db:push:production --workspace=packages/database
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm run db:push:production --filter=packages/database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
@@ -286,10 +284,16 @@ jobs:
     needs: migration
     steps:
       - uses: actions/checkout@v3
-      - uses: oven-sh/setup-bun@v1
-      - run: bun install
-      - run: bun run build --filter=apps/api
-      - run: wrangler deploy apps/api
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm run build --filter=api
+      - run: wrangler deploy api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
@@ -298,10 +302,16 @@ jobs:
     needs: deploy-api
     steps:
       - uses: actions/checkout@v3
-      - uses: oven-sh/setup-bun@v1
-      - run: bun install
-      - run: bun run build --filter=apps/frontend
-      - run: wrangler pages deploy apps/frontend/dist
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm run build --filter=frontend
+      - run: wrangler pages deploy frontend/dist
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 ```
